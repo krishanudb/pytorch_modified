@@ -64,7 +64,7 @@ if __name__ == "__main__":
             model.load_darknet_weights(opt.pretrained_weights)
 
     # Get dataloader
-    dataset = ListDataset(train_path, augment=True, multiscale=opt.multiscale_training)
+    dataset = ListDataset(train_path)
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=opt.batch_size,
@@ -159,10 +159,10 @@ if __name__ == "__main__":
             print(log_str)
 
             model.seen += imgs.size(0)
+            print("Segmentation Loss: " + str(loss_seg.value()))
 
         if epoch % opt.evaluation_interval == 0:
             print("\n---- Evaluating Model ----")
-            print("Segmentation Loss: " + str(loss_seg.value()))
             # Evaluate the model on the validation set
             precision, recall, AP, f1, ap_class = evaluate(
                 model,
