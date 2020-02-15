@@ -66,10 +66,12 @@ class ImageFolder(Dataset):
 
 
 class ListDataset(Dataset):
-    def __init__(self, list_path, list_mpath, img_size=416, augment=True, multiscale=True, normalized_labels=True):
+    def __init__(self, list_path, img_size=416, augment=True, multiscale=True, normalized_labels=True):
         with open(list_path, "r") as file:
             self.img_files = file.readlines()
-            
+        
+        list_mpath = list_path.replace("images", "masks")
+
         with open(list_mpath, "r") as mfile:
             self.mask_files = mfile.readlines()
 
@@ -139,27 +141,30 @@ class ListDataset(Dataset):
             targets[:, 1:] = boxes
 
         # Apply augmentations
-        if self.augment:
-            if np.random.random() < 0.5:
-                img, mask, targets = horisontal_flip(img, mask, targets)
+        # if self.augment:
+        #     if np.random.random() < 0.5:
+        #         img, mask, targets = horisontal_flip(img, mask, targets)
 
         return img_path, img, mask_path, mask, targets
 
     def collate_fn(self, batch):
-        paths, imgs, mask, targets = list(zip(*batch))
+        paths, imgs, mask_paths, masks, targets = list(zip(*batch))
         # Remove empty placeholder targets
         targets = [boxes for boxes in targets if boxes is not None]
         # Add sample index to targets
         for i, boxes in enumerate(targets):
             boxes[:, 0] = i
         targets = torch.cat(targets, 0)
-        # Selects new image size every tenth batch
-        if self.multiscale and self.batch_count % 10 == 0:
-            self.img_size = random.choice(range(self.min_size, self.max_size + 1, 32))
-        # Resize images to input shape
+        # # Selects new image size every tenth batch
+        # if self.multiscale and self.batch_count % 10 == 0:
+        #     self.img_size = random.choice(range(self.min_size, self.max_size + 1, 32))
+        #     self.img_size = random.choice(range(self.min_size, self.max_size + 1, 32))
+        # # Resize images to input shape
         imgs = torch.stack([resize(img, self.img_size) for img in imgs])
+        masks = torch.stack([resize(mask, self.img_size) for mask in masks])
+
         self.batch_count += 1
-        return paths, imgs, targets
+        return paths, imgs, mask_paths, masks, targets
 
     def __len__(self):
         return len(self.img_files)
